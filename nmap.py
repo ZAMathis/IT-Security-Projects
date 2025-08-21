@@ -1,8 +1,8 @@
 import socket
+import argparse
 import time
 
 TIMEOUT = 5  # Default timeout for socket connections in seconds
-# PORTS = [22, 80, 443, 8000] # List of ports to scan for now
 
 def scan_port(target, port, timeout=TIMEOUT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,18 +35,32 @@ def parse_ports(port_string):
     return ports
 
 def main():
+    """
     target = input("Enter the target IP address or hostname: ")
     ports = parse_ports(input("Enter ports to scan (comma-separated or ranges, e.g., 22,80,443 or 8000-8005): "))
     print(f"Scanning ports on {target}...")
+    """
+    # Now let's make this more like a command line tool with arguements -help, etc
+    parser = argparse.ArgumentParser(description="Simple python port scanner")
+    parser.add_argument("target", help="Target IP address or hostname to scan")
+    parser.add_argument("-p", "--ports",
+                        default="20, 21, 22, 23, 25, 53, 80, 110, 143, 443, 8080",
+                        help="Comma-separated list of ports to scan (e.g., 22,80,443 or 8000-8005)")
+    
+    args = parser.parse_args()
+    target = args.target
+    ports = parse_ports(args.ports)
+    print(f"Scanning ports on {target}...")
+
 
     # Starting a timer
     start_time = time.perf_counter()
 
     for port in ports:
         if scan_port(target, port):
-            print(f"Port {port} is open on {target}.")
+            print(f"{port}/TCP open.")
         else:
-            print(f"Port {port} is closed on {target}.")
+            print(f"{port}/TCP closed.")
     
     # Ending the timer
     end_time = time.perf_counter()
