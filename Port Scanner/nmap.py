@@ -3,7 +3,7 @@ import socket
 import argparse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from decoderesp import decode_dns, decode_ntp, decode_snmp, decode_tftp
+from decoderesp import *
 
 TIMEOUT = 1.0  # Default timeout for socket connections in seconds
 
