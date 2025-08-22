@@ -3,7 +3,7 @@ import argparse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-TIMEOUT = 1  # Default timeout for socket connections in seconds
+TIMEOUT = 1.0  # Default timeout for socket connections in seconds
 
 def scan_port(target, port, timeout=TIMEOUT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -26,6 +26,7 @@ def parse_ports(port_string):
     ports = []
 
     for part in port_string.split(','):
+        part = part.strip() # strip any whitespace, in case of errors
         # Handle ranges of ports first
         if '-' in part:
             start, end = part.split('-')
@@ -40,10 +41,18 @@ def main():
     
     # Now let's make this more like a command line tool with arguements -help, etc
     parser = argparse.ArgumentParser(description="Simple python port scanner")
+
     parser.add_argument("target", help="Target IP address or hostname to scan")
+
     parser.add_argument("-p", "--ports",
                         default="20, 21, 22, 23, 25, 53, 80, 110, 143, 443, 8080",
                         help="Comma-separated list of ports to scan (e.g., 22,80,443 or 8000-8005)")
+    
+    parser.add_argument("-t", "--timeout", type=float, default=TIMEOUT,
+                        help="Timeout for each port scan in seconds (default: 1 second)")
+    
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose output")
     
     args = parser.parse_args()
     target = args.target
@@ -62,6 +71,10 @@ def main():
         # As each thread finishes, try to collect the result
         for future in as_completed(future_to_port):
             port = future_to_port[future]
+
+            if args.verbose:
+                print(f'Scanning port {port}')
+
             try:
                 is_open = future.result()
                 results.append((port, is_open))
