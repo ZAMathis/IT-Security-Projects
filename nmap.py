@@ -1,8 +1,9 @@
 import socket
 import argparse
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-TIMEOUT = 5  # Default timeout for socket connections in seconds
+TIMEOUT = 1  # Default timeout for socket connections in seconds
 
 def scan_port(target, port, timeout=TIMEOUT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,14 +33,11 @@ def parse_ports(port_string):
             ports.extend(range(start, end + 1))
         else:
             ports.append(int(part))
+
     return ports
 
 def main():
-    """
-    target = input("Enter the target IP address or hostname: ")
-    ports = parse_ports(input("Enter ports to scan (comma-separated or ranges, e.g., 22,80,443 or 8000-8005): "))
-    print(f"Scanning ports on {target}...")
-    """
+    
     # Now let's make this more like a command line tool with arguements -help, etc
     parser = argparse.ArgumentParser(description="Simple python port scanner")
     parser.add_argument("target", help="Target IP address or hostname to scan")
@@ -52,16 +50,30 @@ def main():
     ports = parse_ports(args.ports)
     print(f"Scanning ports on {target}...")
 
-
     # Starting a timer
     start_time = time.perf_counter()
 
-    for port in ports:
-        if scan_port(target, port):
-            print(f"{port}/TCP open.")
-        else:
-            print(f"{port}/TCP closed.")
-    
+    # Using ThreadPoolExecutor for concurrent scanning, storing in a result array
+    results = []
+
+    with ThreadPoolExecutor(max_workers=100) as executor:
+        future_to_port = {executor.submit(scan_port, target, port): port for port in ports}
+
+        # As each thread finishes, try to collect the result
+        for future in as_completed(future_to_port):
+            port = future_to_port[future]
+            try:
+                is_open = future.result()
+                results.append((port, is_open))
+            except Exception as e:
+                print(f"Error scanning port {port}: {e}")
+        
+    # Print the results, sorted by port number
+    results.sort(key=lambda x: x[0])
+    for port, is_open in results:
+        status = "open" if is_open else "closed"
+        print(f"{port}/TCP {status}.")
+
     # Ending the timer
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
