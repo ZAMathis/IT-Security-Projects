@@ -53,7 +53,7 @@ def grab_banner(target, port, timeout=TIMEOUT):
             banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
         elif port == 443:  # HTTPS
             banner = "Possible HTTPS service"
-        elif port == [21, 22, 23, 25, 110, 143]:
+        elif port in [21, 22, 23, 25, 110, 143]:
             # guys like these usually greet first
             banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
         else:
