@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 TIMEOUT = 1.0  # Default timeout for socket connections in seconds
 
+# Core function to scan a single port
 def scan_port(target, port, timeout=TIMEOUT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout)
@@ -36,6 +37,52 @@ def parse_ports(port_string):
             ports.append(int(part))
 
     return ports
+
+# Let's add a function for grabbing banners of specific ports
+def grab_banner(target, port, timeout=TIMEOUT):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        sock.connect((target, port))
+
+        banner = None
+
+        # Try HTTP request first, since I'm having issues with getting 80 and 8080 banners
+        try:
+            sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
+            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+        except Exception:
+            pass
+
+        # If we didn't get a banner from the HTTP request, we can try a regular banner grab
+        if not banner:
+            try:
+                banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+            except Exception:
+                pass
+        
+        return banner if banner else None
+        """
+        banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+        
+        if banner:
+            return banner
+        
+        # If no banner is received, we can still send a simple request
+        sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
+        banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+
+        return banner if banner else None
+        """
+    
+    except Exception:
+        return None
+    finally:
+        sock.close()
+
+
+
+
 
 def main():
     
@@ -77,15 +124,25 @@ def main():
 
             try:
                 is_open = future.result()
-                results.append((port, is_open))
+                
+                if is_open:
+                    banner = grab_banner(target, port)
+                    results.append((port, is_open, banner))
+                else:
+                    results.append((port, is_open, None))
+
             except Exception as e:
                 print(f"Error scanning port {port}: {e}")
         
     # Print the results, sorted by port number
     results.sort(key=lambda x: x[0])
-    for port, is_open in results:
+
+    for port, is_open, banner in results:
         status = "open" if is_open else "closed"
-        print(f"{port}/TCP {status}.")
+        line = f"{port}/TCP {status}"
+        if is_open and banner:
+            line += f" | {banner}"
+        print(line)
 
     # Ending the timer
     end_time = time.perf_counter()
