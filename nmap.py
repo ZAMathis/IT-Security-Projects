@@ -47,6 +47,23 @@ def grab_banner(target, port, timeout=TIMEOUT):
 
         banner = None
 
+        # We're going to redo the banner grabbing tailoring it to each service
+        if port in [80, 8080, 8000, 8888]: # common http ports
+            sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
+            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+        elif port == 443:  # HTTPS
+            banner = "Possible HTTPS service"
+        elif port == [21, 22, 23, 25, 110, 143]:
+            # guys like these usually greet first
+            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+        else:
+            # if all else fails, we'll just try to grab SOMETHING
+            try:
+                banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+            except Exception:
+                pass
+
+        """
         # Try HTTP request first, since I'm having issues with getting 80 and 8080 banners
         try:
             sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
@@ -60,29 +77,12 @@ def grab_banner(target, port, timeout=TIMEOUT):
                 banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
             except Exception:
                 pass
-        
-        return banner if banner else None
         """
-        banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
-        
-        if banner:
-            return banner
-        
-        # If no banner is received, we can still send a simple request
-        sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
-        banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
-
         return banner if banner else None
-        """
-    
     except Exception:
         return None
     finally:
         sock.close()
-
-
-
-
 
 def main():
     
