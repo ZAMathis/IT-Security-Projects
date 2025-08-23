@@ -6,6 +6,8 @@ Thanks, ChatGPT!
 
 import struct
 
+# UDP protocol decoders
+
 def decode_dns(data: bytes) -> str:
     """Decode a minimal DNS response header."""
     if len(data) < 12:
@@ -38,3 +40,40 @@ def decode_tftp(data: bytes) -> str:
     opcode = struct.unpack(">H", data[:2])[0]
     opcodes = {3: "DATA", 4: "ACK", 5: "ERROR"}
     return f"TFTP response | opcode={opcodes.get(opcode, opcode)}"
+
+# TCP/IP protocol decoders
+
+def decode_http(data: str) -> str:
+    """Extract HTTP status line and Server header if present."""
+    lines = data.split("\r\n")
+    status_line = lines[0] if lines else "Unknown HTTP response"
+    server = ""
+    for line in lines:
+        if line.lower().startswith("server:"):
+            server = line
+            break
+    return f"{status_line} | {server}" if server else status_line
+
+def decode_ftp(data: str) -> str:
+    """FTP servers usually respond with a numeric code + message."""
+    return f"FTP banner | {data.strip()}"
+
+def decode_smtp(data: str) -> str:
+    """SMTP servers greet with 220 + message."""
+    return f"SMTP banner | {data.strip()}"
+
+def decode_pop3(data: str) -> str:
+    """POP3 servers greet with +OK message."""
+    return f"POP3 banner | {data.strip()}"
+
+def decode_imap(data: str) -> str:
+    """IMAP servers greet with * OK message."""
+    return f"IMAP banner | {data.strip()}"
+
+def decode_ssh(data: str) -> str:
+    """SSH servers send version info first."""
+    return f"SSH banner | {data.strip()}"
+
+def decode_telnet(data: str) -> str:
+    """Telnet may spit out negotiation or greeting text."""
+    return f"Telnet banner | {data.strip()}"

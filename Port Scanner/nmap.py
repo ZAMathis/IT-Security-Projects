@@ -27,6 +27,20 @@ UDP_DECODERS = {
     69: decode_tftp,
 }
 
+# TCP/IP protocol decoders
+TCP_DECODERS = {
+    21: decode_ftp,
+    22: decode_ssh,
+    23: decode_telnet,
+    25: decode_smtp,
+    80: decode_http,
+    110: decode_pop3,
+    143: decode_imap,
+    443: decode_http,   # HTTPS still responds with HTTP if plaintext requested
+    8080: decode_http,
+}
+
+
 # Core function to scan a single port
 def scan_port(target, port, timeout=TIMEOUT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,26 +87,24 @@ def grab_banner(target, port, timeout=TIMEOUT):
 
         banner = None
 
-        # We're going to redo the banner grabbing tailoring it to each service
-        if port in [80, 8080, 8000, 8888]: # common http ports
+        # HTTP request for web ports
+        if port in [80, 8080, 8000, 8888, 443]:
             sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
-            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
 
-        elif port == 443:  # HTTPS
-            banner = "Possible HTTPS service"
-
-        elif port in [21, 22, 23, 25, 110, 143]:
-            # guys like these usually greet first
-            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
-
-        else:
-            # if all else fails, we'll just try to grab SOMETHING
-            try:
-                banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
-
-            except Exception:
-                pass
+        try:
+            data = sock.recv(2048).decode('utf-8', errors='ignore').strip()
         
+        except Exception:
+            data = ""
+
+        # Use one of our decoders if available
+        if data:
+            decoder = TCP_DECODERS.get(port)
+            if decoder:
+                banner = decoder(data)
+            else:
+                banner = data
+
         return banner if banner else None
     
     except Exception:
