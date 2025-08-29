@@ -1,33 +1,67 @@
 """
-Web app to test:
-    http://10.0.0.217/DVWA/
+TODO:
+
+    add user input rather than using hackthissite everytime
+    add threading so it can go faster (it's very slow now)
+    add arguements so users can add whatever wordlist they like
 """
 
 import requests
+import time
 
-wordlist = open('common_web_dirs.txt', 'r')
+dirlist = open('common_web_dirs.txt', 'r')
 
 # target_url = input("Enter host to scan: ")
 
-for word in wordlist:
-    print(word)
 
-# request = requests.get(target_url)
 
-# print(request.status_code)
 
-"""
-have user input url
+def dir_search(url, max_depth=2, current_depth=0):
 
-initialize wordlist
+    # Had an issue with infinite recursion so here's to prevent that
+    if current_depth > max_depth:
+        return
 
-def dir_search(url)
-    for each word in the wordlist
-        new url = input_url + word appended
+    found_dirs = []
 
-        if request_of_new_url.status = ok
-            print directory found (word)
+    print(f"Searching {url}")
+
+
+
+    for directory in dirlist:
+        if url.endswith('/'):
+            test_url = url + directory
+        else:
+            test_url = url + '/' + directory
+
+
+        try:
+            new_request = requests.get(test_url, timeout=5, allow_redirects=False)
+
+            if new_request.status_code == 200:
+                print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
+                found_dirs.append(test_url)
+                """
+            elif new_request.status_code == 301:
+                print(f"Redirect on: {test_url}, HTTP: {new_request.status_code}")
+                found_dirs.append(test_url)
+                """
+            elif new_request.status_code == 302:
+                print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
+                found_dirs.append(test_url)
+            elif new_request.status_code == 403:
+                print(f'Forbidden: {test_url}, HTTP: {new_request.status_code}')
             
-            dir_search(new_url)
+            time.sleep(0.1)
+        
+        except requests.exceptions.RequestException as e:
+            print(f'Error accessing {test_url}')
 
-"""
+    
+    # Handle our super duper special recursion process 
+    if current_depth < max_depth - 1:
+        for found_dir in found_dirs:
+            dir_search(found_dir, max_depth, current_depth + 1)
+
+
+dir_search('https://hackthissite.org')
