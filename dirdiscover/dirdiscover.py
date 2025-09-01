@@ -9,7 +9,10 @@ TODO:
 import requests
 import time
 
-dirlist = open('common_web_dirs.txt', 'r')
+# dirlist = open('common_web_dirs.txt',)
+
+with open('common_web_dirs.txt', 'r') as f:
+    dirlist = [line.strip() for line in f.readlines() if line.strip()]
 
 # target_url = input("Enter host to scan: ")
 
@@ -26,8 +29,6 @@ def dir_search(url, max_depth=2, current_depth=0):
 
     print(f"Searching {url}")
 
-
-
     for directory in dirlist:
         if url.endswith('/'):
             test_url = url + directory
@@ -36,28 +37,35 @@ def dir_search(url, max_depth=2, current_depth=0):
 
 
         try:
-            new_request = requests.get(test_url, timeout=5, allow_redirects=False)
+            new_request = requests.get(test_url, timeout=5, allow_redirects=True)
+
+            if new_request.history:
+                print(f"  Redirect chain: {[r.status_code for r in new_request.history]} -> {new_request.status_code}")
+                print(f"  Final URL: {new_request.url}")
 
             if new_request.status_code == 200:
                 print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
                 found_dirs.append(test_url)
-                """
+
             elif new_request.status_code == 301:
                 print(f"Redirect on: {test_url}, HTTP: {new_request.status_code}")
                 found_dirs.append(test_url)
-                """
+            
             elif new_request.status_code == 302:
                 print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
                 found_dirs.append(test_url)
+            
             elif new_request.status_code == 403:
                 print(f'Forbidden: {test_url}, HTTP: {new_request.status_code}')
             
+            elif new_request.status_code == 404:
+                pass
+
             time.sleep(0.1)
         
         except requests.exceptions.RequestException as e:
             print(f'Error accessing {test_url}')
 
-    
     # Handle our super duper special recursion process 
     if current_depth < max_depth - 1:
         for found_dir in found_dirs:
