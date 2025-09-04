@@ -22,22 +22,27 @@ def test_single_url(url):
     try:
         response = requests.get(url, timeout=5, allow_redirects=True)
 
-        interesting = response.status_code in [200, 301, 302, 403]
+        is_interesting = response.status_code in [200, 302]
 
-        return (url, response.status_code, interesting)
+        return (url, response.status_code, is_interesting)
     except requests.exceptions.RequestException:
         return (url, None, False)
 
 
 # New dir_search function, but for threading:
-def dir_search_threaded(base_url, max_threads=10):
+def dir_search_threaded(base_url, max_threads=10, max_depth=2, current_depth=0):
+
+    # preventing infinite recursion
+    if current_depth > max_depth:
+        return
+
     urls_to_test = []
 
     for directory in dirlist:
-        if base_url.endswith('/'):
+        if base_url.endswith("/"):
             test_url = base_url + directory
         else:
-            test_url = base_url + '/' + directory
+            test_url = base_url + "/" + directory
         urls_to_test.append(test_url)
 
     # Now let's add the threading
@@ -49,72 +54,29 @@ def dir_search_threaded(base_url, max_threads=10):
         }
 
         for future in as_completed(future_to_url):
-            url, status_code,is_interesting = future.result()
+            url, status_code, is_interesting = future.result()
 
             # if/elif logic goes here
+            match status_code:
+                case 200:
+                    print(f"Possible directory found: {url}, HTTP: {status_code}")
+                    found_dirs.append(url)
+                case 301:
+                    print(f"Redirect on: {url}, HTTP: {status_code}")
+                case 302:
+                    print(f"Directory found/moved: {url}, HTTP: {status_code}")
+                    found_dirs.append(url)
+                case 403:
+                    print(f"Forbidden directory: {url}, HTTP: {status_code}")
 
-            if is_interesting:
-                # print result, append to found_dirs
-            pass
+    if current_depth < max_depth - 1:
+        for directory in found_dirs:
+            dir_search_threaded(directory, max_threads, max_depth, current_depth + 1)
 
     return found_dirs
 
-def dir_search(url, max_depth=2, current_depth=0):
-
-    # Had an issue with infinite recursion so here's to prevent that
-    if current_depth > max_depth:
-        return
-
-    found_dirs = []
-
-    print(f"Searching {url}")
-
-    for directory in dirlist:
-        if url.endswith("/"):
-            test_url = url + directory
-        else:
-            test_url = url + "/" + directory
-
-        try:
-            new_request = requests.get(test_url, timeout=5, allow_redirects=True)
-
-            # For debugging:
-            """
-            if new_request.history:
-                print(
-                    f"  Redirect chain: {[r.status_code for r in new_request.history]} -> {new_request.status_code}"
-                )
-                print(f"  Final URL: {new_request.url}")
-            """
-
-            if new_request.status_code == 200:
-                print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
-                found_dirs.append(test_url)
-
-            elif new_request.status_code == 301:
-                print(f"Redirect on: {test_url}, HTTP: {new_request.status_code}")
-                found_dirs.append(test_url)
-
-            elif new_request.status_code == 302:
-                print(f"Directory found! {test_url}, HTTP: {new_request.status_code}")
-                found_dirs.append(test_url)
-
-            elif new_request.status_code == 403:
-                print(f"Forbidden: {test_url}, HTTP: {new_request.status_code}")
-
-            elif new_request.status_code == 404:
-                pass
-
-            time.sleep(0.1)
-
-        except requests.exceptions.RequestException:
-            print(f"Error accessing {test_url}")
-
-    # Handle our super duper special recursion process
-    if current_depth < max_depth - 1:
-        for found_dir in found_dirs:
-            dir_search(found_dir, max_depth, current_depth + 1)
-
 
 if __name__ == "__main__":
-    dir_search("https://hackthissite.org")
+    # dir_search("https://hackthissite.org")
+    print("Beginning search")
+    dir_search_threaded("https://hackthissite.org")
