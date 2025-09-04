@@ -2,21 +2,62 @@
 TODO:
 
     add user input rather than using hackthissite everytime
-    add threading so it can go faster (it's very slow now)
+    add threading so it can go faster (it's very slow now) <--- IN PROGRESS
     add arguements so users can add whatever wordlist they like
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
-# dirlist = open('common_web_dirs.txt',)
-
+# Open up default wordlist for now
 with open("common_web_dirs.txt", "r") as f:
     dirlist = [line.strip() for line in f.readlines() if line.strip()]
 
-# target_url = input("Enter host to scan: ")
 
+def test_single_url(url):
+    # Returns a url, the status code of it, and whether or not it's worth scanning
+
+    try:
+        response = requests.get(url, timeout=5, allow_redirects=True)
+
+        interesting = response.status_code in [200, 301, 302, 403]
+
+        return (url, response.status_code, interesting)
+    except requests.exceptions.RequestException:
+        return (url, None, False)
+
+
+# New dir_search function, but for threading:
+def dir_search_threaded(base_url, max_threads=10):
+    urls_to_test = []
+
+    for directory in dirlist:
+        if base_url.endswith('/'):
+            test_url = base_url + directory
+        else:
+            test_url = base_url + '/' + directory
+        urls_to_test.append(test_url)
+
+    # Now let's add the threading
+    found_dirs = []
+
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        future_to_url = {
+            executor.submit(test_single_url, url): url for url in urls_to_test
+        }
+
+        for future in as_completed(future_to_url):
+            url, status_code,is_interesting = future.result()
+
+            # if/elif logic goes here
+
+            if is_interesting:
+                # print result, append to found_dirs
+            pass
+
+    return found_dirs
 
 def dir_search(url, max_depth=2, current_depth=0):
 
