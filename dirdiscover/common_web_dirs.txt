@@ -1,14 +1,6 @@
-blog
-.bzr
-.env
-.git
-.hg
-.svn
-__pycache__
 robots.txt
 robot.txt
 about
-account
 admin
 administrator
 api
