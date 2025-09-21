@@ -10,18 +10,17 @@ add more encryption types
 TEST_HASH = hashlib.sha1("LuckyCharm".encode()).hexdigest()
 
 
-def compare_md5(user_hash, word):
-    hashed_word = hashlib.md5(word.encode()).hexdigest()
-
-    if user_hash == hashed_word:
-        return True
-
-
-def compare_sha1(user_hash, word):
-    hashed_word = hashlib.sha1(word.encode()).hexdigest()
-
-    if user_hash == hashed_word:
-        return True
+# Combining compare functions
+def compare_hash(user_hash, word, hash_type):
+    match (hash_type):
+        case "md5":
+            return (
+                True if hashlib.md5(word.encode()).hexdigest() == user_hash else False
+            )
+        case "sha1":
+            return (
+                True if hashlib.sha1(word.encode()).hexdigest() == user_hash else False
+            )
 
 
 def check_hash(user_hash, wordlist, hash_type):
@@ -30,13 +29,13 @@ def check_hash(user_hash, wordlist, hash_type):
     for word in wordlist:
         match (hash_type):
             case "md5":
-                if compare_md5(user_hash, word):
+                if compare_hash(user_hash, word, hash_type):
                     print(f"Password found! {word}, {hash_type}")
                     is_found = True
                     break
 
             case "sha1":
-                if compare_sha1(user_hash, word):
+                if compare_hash(user_hash, word, hash_type):
                     print(f"Password found! {word}, {hash_type}")
                     is_found = True
                     break
