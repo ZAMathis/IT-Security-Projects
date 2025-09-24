@@ -3,14 +3,10 @@ import hashlib
 
 """
 TODO:
-add argparse <-- DONE
-    add arguments for hashtype <-- DONE  
-    custom wordlists <-- DONE
-add more encryption types <-- DONE (kind of)
-add ability to use a list of hashes <-- IN PROGRESS
 add option to save output of results to a file
-add ability to actually FIND OUT what type of hash is inputted
+add ability to actually FIND OUT what type of hash is inputted, if possible
 
+BUGS:
 there is a bug that if the user is decrypting a list, it will print out "Nope" at the top
 """
 
