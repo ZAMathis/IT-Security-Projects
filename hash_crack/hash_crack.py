@@ -3,7 +3,7 @@ import hashlib
 
 """
 TODO:
-add option to save output of results to a file
+add option to save output of results to a file <-- IN PROGRESS
 add ability to actually FIND OUT what type of hash is inputted, if possible
 
 BUGS:
@@ -58,11 +58,11 @@ def check_hash(user_hash, wordlist, hash_type):
 
     for word in wordlist:
         if compare_hash(user_hash, word, hash_type):
-            print(f"Password found! {word}, {hash_type}")
             is_found = True
+            return f"{user_hash} = {word}: {hash_type}"
 
     if not is_found:
-        print("Password not found with current hashtype/wordlist!")
+        return "Password not found with current hashtype/wordlist!"
 
 
 if __name__ == "__main__":
@@ -89,25 +89,44 @@ if __name__ == "__main__":
         "-f", "--file", help="Target file with a list of hashes to crack"
     )
 
+    parser.add_argument("-o", "--output", help="Output results to a file")
+
     args = parser.parse_args()
 
     try:
         with open(args.wordlist, "r") as wl:
             wordlist = [line.strip() for line in wl.readlines() if line.strip()]
             print(f"Loaded {len(wordlist)} lines from {args.wordlist}")
-            check_hash(args.target, wordlist, args.hashtype)
     except FileNotFoundError:
         print("Could not find provided wordlist, exiting...")
         exit()
 
-    if args.file:
+    if args.target:
+        result = check_hash(args.target, wordlist, args.hashtype)
+        # lets check and see if user wants to output results first
+        if args.output:
+            with open(f"{args.output}", "w") as output_file:
+                output_file.write(result)
+                print(f"Results printed to {args.output}")
+        print(result)
+
+    elif args.file:
         try:
             with open(args.file, "r") as target_file:
                 target_list = [
                     line.strip() for line in target_file.readlines() if line.strip()
                 ]
-                for line in target_list:
-                    check_hash(line, wordlist, args.hashtype)
+
+                if args.output:
+                    with open(f"{args.output}", "w") as output_file:
+                        for line in target_list:
+                            result = check_hash(line, wordlist, args.hashtype)
+                            if result:
+                                output_file.write(f"{result}\n")
+                    print(f"Results outputted to {args.output}")
+                else:
+                    for line in target_list:
+                        print(check_hash(line, wordlist, args.hashtype))
         except FileNotFoundError:
             print("Target file not found, check your spelling. Exiting...")
             exit()
