@@ -1,13 +1,13 @@
 import argparse
 import hashlib
-import string
 
 """
-TODO:
-add ability to actually FIND OUT what type of hash is inputted, if possible
+TODO: refine the checktype flag and code a bit more if necessary
 
 BUGS:
 there is a bug that if the user is decrypting a list, it will print out "Nope" at the top
+as a matter of fact, there's a good amount of bugs and formatting that could be 
+done in regards to the text output
 """
 
 
@@ -66,6 +66,32 @@ def check_hash(user_hash, wordlist, hash_type):
         return None
 
 
+def identify_type(user_hash):
+    try:
+        if int(user_hash, 16):
+            # placeholder variable
+            possible_type: str = ""
+
+            match len(user_hash):
+                case 32:
+                    possible_type = "MD5"
+                case 40:
+                    possible_type = "SHA1"
+                case 56:
+                    possible_type = "SHA224"
+                case 64:
+                    possible_type = "SHA256"
+                case 96:
+                    possible_type = "SHA384"
+                case 128:
+                    possible_type = "SHA512"
+
+            if possible_type != "":
+                return f"Possible hash type {possible_type}"
+    except ValueError:
+        return "Provided input is not a hexadecimal string"
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command line tool written in python to crack hashes"
@@ -77,6 +103,7 @@ if __name__ == "__main__":
         "-wl",
         "--wordlist",
         help="Dictionary/wordlist to use to crack the hash",
+        # wordlist from repo, uncomment if unwanted
         default="passwords.txt",
     )
 
@@ -92,7 +119,16 @@ if __name__ == "__main__":
 
     parser.add_argument("-o", "--output", help="Output results to a file")
 
+    parser.add_argument(
+        "--checktype",
+        help="Check what possible hash type is being provided. Currently only functional with a single hash",
+    )
+
     args = parser.parse_args()
+
+    if args.checktype:
+        print(identify_type(args.checktype))
+        exit()
 
     try:
         with open(args.wordlist, "r") as wl:

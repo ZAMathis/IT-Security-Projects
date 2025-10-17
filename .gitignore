@@ -1,2 +1,4 @@
 hash_crack/convert_pass.py
 hash_crack/encrypt_pass_md5.txt
+hash_crack/output.txt
+hash_crack/single_output
